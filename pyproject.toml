@@ -18,4 +18,10 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/yourusername/fullstack"
+Repository = "https://github.com/VirtualAssistantColumbus/fullstack"
+
+[tool.setuptools.packages.find]
+include = ["*"]
+
+[tool.setuptools.package-data]
+"*" = ["*"]
