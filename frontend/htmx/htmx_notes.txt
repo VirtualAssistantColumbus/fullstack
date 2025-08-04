@@ -1,0 +1,2 @@
+- If you include hx-vals twice, only the first one will be sent with the request
+- Note that input fields *must* have a name in order to be sent with an hx-post request

@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fullstack"
+version = "0.1.0"
+description = "A type-safe fullstack web framework with document handling and HTMX integration"
+authors = [{name = "Ray Li", email = "rl.invent@gmail.com"}]
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "Proprietary"}
+dependencies = [
+    "bidict",
+    "pymongo>=4.7.0",
+    "Flask",
+    "flask_login",
+]
+
+[project.urls]
+Repository = "https://github.com/yourusername/fullstack"

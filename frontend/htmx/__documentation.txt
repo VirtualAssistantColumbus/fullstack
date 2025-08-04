@@ -1,0 +1,1 @@
+Behing the scenes, routes using the htmxmethod decorator will be renamed to "api_" + function name. Of course, the actual function name doesn't really matter, since you'll never really use this.

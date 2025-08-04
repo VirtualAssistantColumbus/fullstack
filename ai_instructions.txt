@@ -1,0 +1,114 @@
+# Project Architecture Reference
+
+## The Custom "Fullstack" Framework
+
+This project uses a **custom-built Python web framework** that combines two main modules to create a complete full-stack solution:
+
+### Core Framework Components
+
+#### 1. **Type Registration Module** (`type_registration/`)
+- **Purpose**: Automatic type discovery and serialization system  
+- **Features**: 
+  - Automatic discovery of `BsonableDataclass` types via introspection
+  - Configurable pseudo-primitives for custom serialization
+  - Type-safe registry for runtime lookups and validation
+  - MongoDB integration with BSON serialization
+  - Project-agnostic design - can be dropped into any Python project
+
+#### 2. **Web Framework Module** (`web_framework/`)
+- **Purpose**: Complete web UI framework with routing, HTMX integration, and component system
+- **Features**:
+  - Element-based component architecture with automatic state serialization
+  - HTMX-powered interactivity without page reloads
+  - Frame containers for hierarchical UI component management
+  - Page-based routing with automatic URL serialization/deserialization  
+  - Integration with Flask, Alpine.js, and Tailwind CSS
+
+---
+
+## Application Architecture Patterns
+
+### **Component Architecture & State Serialization**
+
+#### **Element_ as the Base Component**
+- **Base Class**: `Element_` is the foundation - `Page_` is a specialized `Element_` for full-page components
+- **Component Hierarchy**: `Element_` → `TypedElement_` → specific components (e.g., `PasswordField_`, `MinimalInputField_`)
+- **Rendering**: All components implement `draw() -> Html` or `inner_html() -> Html`
+- **Composition**: Components can be nested and composed freely
+
+#### **State Management via HTMX Methods**
+The framework manages frontend component state through HTMX method serialization:
+
+**How @htmxmethod() Works:**
+```python
+@htmxmethod()
+def start_editing(password_field_: PasswordField_) -> Element_:
+    password_field_.is_editing = True
+    return password_field_
+```
+
+This decorator serves two purposes:
+1. **Creates a Flask API route** that deserializes component state and executes the method
+2. **Generates HTML attributes** that embed the current component state in HTMX requests
+
+**The State Round Trip:**
+1. **Component renders** with current state (e.g., `is_editing=False`)
+2. **HTML generation embeds state** into HTMX attributes like `hx-vals='{"password_field_": {...state...}}'`
+3. **User interaction** → HTMX sends embedded state back to server
+4. **Server deserializes** state back into component instance
+5. **Method modifies** component state (`password_field_.is_editing = True`) 
+6. **Returns modified component** → re-renders with updated state
+
+**Self-Contained Components:**
+- Each component carries its own state in the HTML requests it generates
+- State persists across interactions without external state management
+- No database storage required for ephemeral component state
+
+#### **Two Types of State Serialization:**
+- **Element Components**: State embedded in HTML attributes (ephemeral, interaction-scoped)
+- **Page Components**: State serialized to URL (bookmarkable, shareable, navigable)
+
+### **Route Registration & Management**
+- **Auto-Registration**: Routes automatically registered by importing modules in `register_flask_routes.py`
+- **Page Configuration**: Classes use class attributes like `__host__`, `__path_prefix__`, `__login_required__`
+- **Route Decorators**: Use `@app_route()` or `@locator_route()` for URL handling  
+- **Subdomain Architecture**: Environment-based hosts (e.g., `PREVIEW_HOST = "preview." + shared.environment.app_domain`)
+
+### **HTMX Integration Patterns** 
+- **Decorators**: `@htmxmethod()` (authenticated) or `@public_htmxmethod()` (public access)
+- **Type Safety**: Must specify return type `-> Element_` for all HTMX methods
+- **Form Integration**: Use `ClientSuppliedField[type]` and `form_lookup("field_name")` for form data
+- **HTML Generation**: Template calls like `{ component.method(params) }` generate HTMX attributes
+- **Code Organization**: HTMX methods placed directly after their corresponding draw functions
+- **State Management**: Methods modify object state and `return self` for re-rendering
+
+### **Data Persistence Architecture**
+- **Element Components**: Ephemeral state (lives during request/interaction cycle)
+- **Document Components**: Inherit from `Document` → persist to MongoDB via type registration
+- **BsonableDataclass**: Base for all serializable types, enables automatic type discovery
+- **Type Registry**: Runtime type lookups and validation for the entire stack
+
+### **Technology Stack Integration**
+- **Backend**: Flask with custom routing and type registration systems
+- **Frontend Styling**: Tailwind CSS for responsive design
+- **Client Interactivity**: Alpine.js for component behavior (sidebars, toggles)  
+- **Database**: MongoDB with automatic BSON serialization via type registration
+- **State Management**: HTMX method state serialization
+
+---
+
+## Key Architectural Principle
+
+**Components are stateful, self-contained units** where:
+1. **State automatically serializes** into HTML requests via HTMX methods
+2. **Components carry their own state** without external state management
+3. **Type safety maintained** throughout the entire stack via type registration
+4. **Interactivity without page reloads** through HTMX round trips
+5. **URL serialization** for Page components enables bookmarkable application states
+
+This enables:
+- SPA-like interactivity with server-side rendering
+- Strong typing from database to frontend
+- Self-contained, reusable components
+- Both ephemeral (Element) and persistent (Page URL) state management
+- Python-only component development with automatic frontend interactivity

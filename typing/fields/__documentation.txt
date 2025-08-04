@@ -1,0 +1,117 @@
+## Summary
+The schema and field system provides a structured way to define, validate, and manage fields in dataclasses and documents. It consists of multiple layers that work together to provide type safety, validation, and configuration options.
+
+How this works behind the scenes is that BsonableDataclassMeta inspects the type annotations and, for each annotated field, generates a FieldSchema. So, at the end of the day, after the metaclass has performed its transformations, all annotated fields will have a FieldSchema stored within the *class* field as well as in cls.__bsonable_fields__
+
+The SchemaConfig() field specifier returns a _SchemaConfig instance which is stored into FieldSchema.schema_config by the metaclass.
+
+The metaclass is decorated with @dataclass_transform from Python's typing module, which tells the static type checkers that we will be performing a dataclass transform on it. @datclass_transform also looks for special keywords in field specifiers like SchemaConfig to determine whether a field has a default value, is kw_only, etc. Read more here: https://peps.python.org/pep-0681/
+
+## Components
+
+### 1. Schema Configurations
+Schema configurations are the user-facing way to specify field behavior when defining classes.
+
+#### SchemaConfig
+Used for regular dataclass fields:
+    class MyDataclass(BsonableDataclass):
+        field1: str = SchemaConfig(
+            default="example",
+            validation_func=lambda x: None,  # Runs on instance initialization
+            allow_edit_by_pointer=True,
+            label="Field One"
+        )
+
+#### DocumentSchemaConfig
+Used for document fields, extends SchemaConfig with document-level validation:
+    class MyDocument(Document):
+        field1: str = DocumentSchemaConfig(
+            default="example",
+            validation_func=lambda x: None,      # Runs on instance initialization
+            document_validation_func=lambda x: None,  # Runs on save/update operations
+            allow_edit_by_pointer=True
+        )
+
+### 2. Internal Schema Classes
+When schema configs are processed, they're converted into internal schema classes:
+
+- `_SchemaConfig`: Internal representation of field configuration
+- `_DocumentSchemaConfig`: Extends _SchemaConfig with document validation capabilities
+
+NOTE: The main reason we use SchemaConfig functions to generate _SchemaConfigs is so that the type checker doesn't complain.
+The Python type checker expects the class fields to be of the same type as the instance fields, which is not a rule that we're following. 
+We assign a SchemaConfig to the class field (which is not of the instance type), then convert it to a FieldSchema and stash that into the class field.
+
+### 3. Field Schemas and Validation
+Field schemas are the runtime representation of fields, containing both the configuration and type information:
+
+- `FieldSchema`: Stores field metadata, type expectations, and validation logic. Can be configured with either _SchemaConfig or _DocumentSchemaConfig.
+
+#### Validation Behavior
+When validation happens, varies based on the object type (Dataclass vs Document) and the operation being performed:
+
+1. **Dataclasses**:
+   - `validation_func` runs only during instance initialization
+   - No validation occurs during field updates
+
+2. **Documents**:
+   - During document-level operations (save/update entire document):
+     - `validation_func` runs during _validate_self() via serialize/deserialize
+     - `document_validation_func` runs explicitly before save/update
+     - (You may also use __before_saving__() if you want to define additional document-level validation)
+   
+   - During field-level operations (db_update_field):
+     - `validation_func` runs on the updated field
+     - `document_validation_func` runs on the updated field
+=
+Note: `document_validation_func` is only available in DocumentSchemaConfig, while `validation_func` is available in both SchemaConfig and DocumentSchemaConfig.
+
+#### Field Schema Location
+When FieldPath looks up fields (e.g., in .for_() or .extend()), it searches for the FieldSchema within the class's attributes directly, not in __bsonable_fields__. This is important because:
+- The FieldSchema is stored in both places
+- The class attribute is the source of truth during path construction
+- __bsonable_fields__ is used primarily for serialization/deserialization
+
+## Processing Flow
+
+1. **Class Definition**:
+   - User defines fields using SchemaConfig or DocumentSchemaConfig
+   - Type annotations specify field types
+
+2. **Metaclass Processing** (BsonableDataclassMeta):
+   - Creates FieldSchema instances for each annotated field
+   - Stores configurations within FieldSchema (either _SchemaConfig or _DocumentSchemaConfig)
+   - Registers fields in both:
+     - Class attributes (replacing the SchemaConfig)
+     - `__bsonable_fields__` dictionary
+
+3. **Document Processing**:
+   - Documents use _DocumentSchemaConfig for their fields
+   - BsonableDataclasses can use either _SchemaConfig or _DocumentSchemaConfig (useful when nested within Documents)
+
+## Usage
+
+1. Use `SchemaConfig` for regular dataclass fields
+2. Use `DocumentSchemaConfig` for document fields
+3. Always provide type annotations for fields
+4. Use validation functions for complex validation rules
+5. Consider using `allow_edit_by_pointer` for API-accessible fields
+
+When you defining a dataclass, specify fields using annotations
+
+    class MyClass(BsonableDataclass):
+        my_field: int
+
+You can set a default value:
+
+    class MyClass(BsonableDataclass):
+        my_field: int = 5
+
+You can also set configurations using SchemaConfig().
+
+    class MyClass(BsonableDataclass):
+        my_field: int = SchemaConfig(default=5)
+
+## Todo
+    - Test if frozen works for subclass like EmailEntity
+    - Handle field shadowing by subclasses
