@@ -1,0 +1,104 @@
+Metadata-Version: 2.4
+Name: fullstack
+Version: 0.1.1
+Summary: A type-safe fullstack web framework with document handling and HTMX integration
+Author-email: Ray Li <rl.invent@gmail.com>
+License: Proprietary
+Project-URL: Repository, https://github.com/VirtualAssistantColumbus/fullstack
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: bidict
+Requires-Dist: pymongo>=4.7.0
+Requires-Dist: Flask
+Requires-Dist: flask_login
+
+# Fullstack Framework
+
+A type-safe fullstack web framework with document handling and HTMX integration.
+
+## Features
+
+🎯 **Type-Safe Document Management**
+- MongoDB integration with type-safe ODM
+- Document versioning and field validation  
+- Configurable schema validation
+
+🌐 **Modern Frontend Framework**
+- HTMX integration for reactive UIs
+- Server-side rendering support
+- Built-in component system
+
+🔐 **Authentication & Security**
+- Flask-Login integration
+- Role-based access control
+- Secure session management
+
+⚡ **Developer Experience**
+- Auto-generating forms from document schemas
+- Built-in development utilities
+- Hot reload support
+
+## Installation
+
+### From Private Git Repository
+
+```bash
+pip install git+https://github.com/yourusername/fullstack.git
+```
+
+### From Local Source
+
+```bash
+cd /path/to/fullstack
+pip install -e .
+```
+
+## Quick Start
+
+```python
+from fullstack.frontend import register_flask_routes
+from fullstack.document import Document
+from fullstack.typing import type_registry
+
+# Initialize your Flask app
+app = Flask(__name__)
+
+# Register fullstack routes
+register_flask_routes(app)
+
+# Define your documents
+class User(Document):
+    name: str
+    email: str
+    
+# Create type registry
+create_type_registry()
+
+# Run your app
+if __name__ == "__main__":
+    app.run(debug=True)
+```
+
+## Environment Setup
+
+Set these environment variables:
+
+```bash
+APP_PROTOCOL=http  # or https
+API_HOST=localhost:5000
+```
+
+## Documentation
+
+See the individual module READMEs:
+- [Frontend](frontend/readme.md) - HTMX and component system
+- [Document](document/readme.txt) - Document management and MongoDB
+- [Typing](typing/README.md) - Type system and validation
+
+## Development
+
+This library is actively developed and maintained privately.
+
+## License
+
+Proprietary - All rights reserved.

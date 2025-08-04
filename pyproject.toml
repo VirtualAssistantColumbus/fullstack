@@ -21,7 +21,8 @@ dependencies = [
 Repository = "https://github.com/VirtualAssistantColumbus/fullstack"
 
 [tool.setuptools.packages.find]
-include = ["*"]
+where = ["."]
+include = ["fullstack*"]
 
 [tool.setuptools.package-data]
-"*" = ["*"]
+"fullstack" = ["*"]
