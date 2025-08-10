@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fullstack"
-version = "0.1.2"
+version = "0.1.3"
 description = "A type-safe fullstack web framework with document handling and HTMX integration"
 authors = [{name = "Ray Li", email = "rl.invent@gmail.com"}]
 readme = "README.md"
