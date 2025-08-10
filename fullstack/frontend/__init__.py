@@ -1,9 +1,12 @@
 import os
 from typing import Callable
 
+# Expose these at the module level
 from ..utilities.setup_error import SetupError
+from .htmx.htmx_request import htmxmethod, public_htmxmethod
+from .htmx.client_supplied_field import ClientSuppliedField
 
-
+# Check for required env variables
 APP_PROTOCOL = os.environ.get("APP_PROTOCOL")
 if not APP_PROTOCOL:
     raise SetupError("You must specify APP_PROTOCOL in your environment variables. Value should be 'http' or 'https'.")
