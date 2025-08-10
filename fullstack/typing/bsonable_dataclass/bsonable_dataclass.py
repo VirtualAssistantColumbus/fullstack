@@ -4,9 +4,12 @@ from typing import Any, ClassVar, Self
 from .bsonable_dataclass_meta import SPECIAL_INSTANCE_FIELDS, BsonableDataclassMeta
 from ..fields.field_schema import FieldSchema
 from ...utilities.special_values import ABSTRACT
-from ...document.document_context import DocumentContext
 from ..serialization.vars import __type_id__, get_type_id
 from ...utilities.logger import logger
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+	from ...document.document_context import DocumentContext
 
 
 class BsonableDataclass(ABC, metaclass=BsonableDataclassMeta):
@@ -86,7 +89,7 @@ class BsonableDataclass(ABC, metaclass=BsonableDataclassMeta):
 		return output
 
 	@classmethod
-	def from_bson(cls, bson: Any, document_context: DocumentContext | None, *, coerce_str_values: bool = False) -> Self:
+	def from_bson(cls, bson: Any, document_context: 'DocumentContext | None', *, coerce_str_values: bool = False) -> Self:
 		""" Define how this BsonableDataclass should be instantiated from a bson document that matches this version. """
 		""" If an annotated field has a default value, it will be set to the default if not in document. """
 		from ..serialization.bson_to_type_expectation import bson_to_type_expectation

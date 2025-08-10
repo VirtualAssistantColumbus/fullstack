@@ -7,7 +7,6 @@ from pymongo.typings import _Pipeline
 from pymongo.database import Database
 from pymongo import ReturnDocument
 
-from ..typing.fields.field_pointer import DocumentFieldPointer
 from ..typing.fields.field_schema import FieldSchema
 from .document_id import DocumentId
 from ..typing.bsonable_dataclass.bsonable_dataclass import BsonableDataclass
@@ -15,7 +14,6 @@ from ..typing.fields.field_path import FieldPath
 from ..typing.fields.get_field_name import get_field_name
 from ..typing.fields.schema_config import _DocumentSchemaConfig, DocumentSchemaConfig
 from .update_method import UpdateMethod
-from ..typing.serialization.obj_to_bson import obj_to_bson
 from ..utilities.special_values import ABSTRACT
 from .document_context import DocumentContext
 from ..utilities.logger import logger
@@ -173,6 +171,8 @@ class Document(BsonableDataclass):
 	
 	def __before_saving__(self, update_method: UpdateMethod) -> None:
 		""" Extend this if you want to perform operations before saving. Useful for validation and for mirroring a new field into a legacy field. """
+		from ..typing.fields.field_pointer import DocumentFieldPointer
+		
 		# TODO: This needs to look at nested fields and run validation for those too
 		
 		# Run validation functions for each field
@@ -437,6 +437,7 @@ class Document(BsonableDataclass):
 		""" Updates the specified field in the database and within the local Document obj. 
 		Pass in a Python object for field value, NOT bson. """
 		from ..typing.fields.field_pointer import DocumentFieldPointer
+		from ..typing.serialization.obj_to_bson import obj_to_bson
 		
 		# Run class validation on self
 		self = type(self).__class_validation__(self)

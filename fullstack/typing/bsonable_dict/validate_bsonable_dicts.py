@@ -1,10 +1,12 @@
 from ..bsonable_dataclass.bsonable_dataclass import BsonableDataclass
-from .bsonable_dict import BsonableDict, __value__, __key__
+from .bsonable_dict import BsonableDict
 
 
 def validate_bsonable_dicts(primitives: list[type], pseudo_primitives: list[type], all_bsonable_dataclasses: list[type[BsonableDataclass]], bsonable_dicts: list[type[BsonableDict]]):
 	""" Validates that all BsonableDicts follow the rules for their key and value types. """
 	# Only primitives and pseudoprimitves can be used as keys. Keys have to be serialized into strings in MongoDb.
+	from .bsonable_dict import __value__, __key__
+	
 	valid_key_types = tuple(primitives + pseudo_primitives)
 	
 	# Any bsonable type can be used for values, including abstract bsonable dataclasses

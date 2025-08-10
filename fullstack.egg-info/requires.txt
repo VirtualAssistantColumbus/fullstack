@@ -1,0 +1,4 @@
+bidict
+pymongo>=4.7.0
+Flask
+flask_login

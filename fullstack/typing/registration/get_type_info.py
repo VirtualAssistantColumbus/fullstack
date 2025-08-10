@@ -1,12 +1,13 @@
 from types import UnionType
 from typing import Annotated, ClassVar, Union, get_args, get_origin
 
-from ...document.document_id import DocumentId
 from ..registration.type_info import TypeInfo
 
 
 def get_type_info(type_: type) -> TypeInfo:
     """ Extracts type and subtype (if present) for a **single** (non-Union) type. """
+    from ...document.document_id import DocumentId
+
     origin = get_origin(type_)
 
     if origin is Annotated:

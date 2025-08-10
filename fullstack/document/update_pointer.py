@@ -10,7 +10,6 @@ from ..typing.fields.field_pointer import DocumentFieldPointer
 from ..typing.fields.schema_config import _DocumentSchemaConfig
 from ..typing.registration.get_type_expectation_from_type_annotation import get_type_expectation_from_type_annotation
 from ..utilities.undefined import UNDEFINED, Undefined
-from ..typing import type_registry
 
 
 V = TypeVar('V', bound=BsonableDataclass)
@@ -42,6 +41,8 @@ def update_pointer_value(pointer: DocumentFieldPointer, new_value: Any) -> Updat
 
 def deference_pointer(pointer: DocumentFieldPointer, expected_type: type[V] | Undefined = UNDEFINED) -> V:
     """ Dereference the pointer value. """
+    from ..typing import type_registry
+    
     # Get the document cls
     document_cls = type_registry.document_info_list.type_id_to_cls(pointer.field_path.get_root_type_id())
 
