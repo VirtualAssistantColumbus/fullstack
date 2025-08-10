@@ -1,10 +1,8 @@
 import os
 from typing import Callable
 
-# Expose these at the module level
 from ..utilities.setup_error import SetupError
-from .htmx.htmx_request import htmxmethod, public_htmxmethod
-from .htmx.client_supplied_field import ClientSuppliedField
+
 
 # Check for required env variables
 APP_PROTOCOL = os.environ.get("APP_PROTOCOL")
@@ -25,3 +23,7 @@ script: str = "" # Script to add to the end of all pages, do NOT wrap in script 
 
 # Set Up: run this function after importing all routes and pages
 from .framework.register_routes import register_flask_routes
+
+# Expose these at the module level
+from .htmx.htmx_request import htmxmethod, public_htmxmethod
+from .htmx.client_supplied_field import ClientSuppliedField
