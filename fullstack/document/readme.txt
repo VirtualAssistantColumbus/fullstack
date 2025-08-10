@@ -1,5 +1,23 @@
-## Consider deprecating or updating
+## Document Module
 
+### Required Environment Variables
+
+The document module requires the following environment variables to be set:
+
+- **MONGO_URL**: MongoDB connection string (e.g., `mongodb://localhost:27017/` or `mongodb+srv://user:pass@cluster.mongodb.net/`)
+- **MONGO_DB_NAME**: Name of the main MongoDB database for application data
+- **MONGO_LOG_DB_NAME**: Name of the MongoDB database used for logging
+
+### Usage Example
+
+MONGO_URL="mongodb://localhost:27017/"
+MONGO_DB_NAME="myapp_db"
+MONGO_LOG_DB_NAME="myapp_logs"
+
+
+
+
+## Consider deprecating or updating
 
 How To:
 

@@ -25,3 +25,9 @@ def get_type_id(bson: Any, document_context: DocumentContext | None) -> str | No
         return None
     
     return type_id
+
+def remove_type_id(bson: dict) -> dict:
+    """ Removes the type id from the bson, if present. """
+    if __type_id__ in bson:
+        del bson[__type_id__]
+    return bson

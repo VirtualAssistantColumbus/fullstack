@@ -4,10 +4,13 @@ from urllib.parse import quote, unquote
 
 from flask import json
 
+from fullstack.typing.serialization.vars import remove_type_id
+
 from ..utilities.html import Html
 from ..framework.client_url import get_client_path
 from ..framework.locator import HasUrl, Locator, url
 from .element_ import Element_
+from ...typing import __type_id__
 
 
 def get_readable_url(url: str) -> str:
@@ -31,6 +34,7 @@ def path_to_bson(path: str) -> dict:
 	return json_value
 
 def bson_to_path(bson: dict) -> str:
+	""" Converts bson to path. """
 	json_str = json.dumps(bson)
 	# Replace forward slashes with encoded version, then URL encode everything else
 	path = json_str.replace('/', '%2F')
@@ -96,7 +100,13 @@ class Page_(Element_, HasUrl, ABC):
 	def to_full_path(self):
 		""" Serializes this object into a full path (including __path_id__) """
 		json_value = self.to_bson()
+		
+		# Remove __type_id__
+		remove_type_id(json_value)
+		
 		path = bson_to_path(json_value)
+		
+		# Add path prefix
 		path_prefix = type(self).get_path_prefix(leading_slash=True, trailing_slash=True)
 		full_path = path_prefix + path
 		return full_path
@@ -105,10 +115,16 @@ class Page_(Element_, HasUrl, ABC):
 	def from_path(cls, path: str):
 		""" Constructs a HasRoute from a URL. """
 		bson = path_to_bson(path)
+
+		# Add type id
+		if not __type_id__ in bson:
+			bson[__type_id__] = cls.__type_id__
+
 		return cls.from_bson(bson, None)
 	
 	@classmethod
 	def from_full_path(cls, full_path: str):
+		# Remove path prefix
 		path = cls.remove_path_prefix(full_path)
 		return cls.from_path(path)
 	

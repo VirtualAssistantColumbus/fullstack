@@ -6,7 +6,7 @@ from ..fields.schema_config import DocumentSchemaConfig, SchemaConfig, _SchemaCo
 from ..fields.field_schema import FieldSchema
 from ...utilities.special_values import AUTO
 from ...utilities.undefined import UNDEFINED
-from ..serialization.vars import __type_id__, __true_class__
+from ..serialization.vars import __type_id__
 
 
 __bsonable_fields__ = "__bsonable_fields__"
@@ -64,11 +64,11 @@ class BsonableDataclassMeta(ABCMeta):
 	5. Manage frozen state and initialization
 	"""
 
-	def __subclasscheck__(cls, subclass: type) -> bool:
-		if hasattr(cls, __true_class__):
-			true_cls = getattr(cls, __true_class__)
-			return true_cls.__subclasscheck__(subclass)
-		return type.__subclasscheck__(cls, subclass)
+	# def __subclasscheck__(cls, subclass: type) -> bool:
+	# 	if hasattr(cls, __true_class__):
+	# 		true_cls = getattr(cls, __true_class__)
+	# 		return true_cls.__subclasscheck__(subclass)
+	# 	return type.__subclasscheck__(cls, subclass)
 
 	def __new__(cls, name, bases, dct, *, frozen: bool = False):
 		from ..registration.get_type_expectation_from_type_annotation import get_type_expectation_from_type_annotation
