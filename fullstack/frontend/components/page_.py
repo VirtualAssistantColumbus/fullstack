@@ -23,9 +23,10 @@ def get_readable_url(url: str) -> str:
 	return json.dumps(json_value, indent=4)
 
 def path_to_bson(path: str) -> dict:
-	# This is necessary, especially for your privacy policy and about pages
+	# If the path does not exist, return an empty dict
 	if not path:
 		return {}
+	
 	# URL decode everything except our encoded slashes
 	json_str = unquote(path)
 	# Now decode our forward slashes
@@ -35,6 +36,10 @@ def path_to_bson(path: str) -> dict:
 
 def bson_to_path(bson: dict) -> str:
 	""" Converts bson to path. """
+	# If the bson is empty, do not add a path
+	if not bson:
+		return ""
+	
 	json_str = json.dumps(bson)
 	# Replace forward slashes with encoded version, then URL encode everything else
 	path = json_str.replace('/', '%2F')
@@ -105,7 +110,7 @@ class Page_(Element_, HasUrl, ABC):
 		remove_type_id(json_value)
 		
 		path = bson_to_path(json_value)
-		
+
 		# Add path prefix
 		path_prefix = type(self).get_path_prefix(leading_slash=True, trailing_slash=True)
 		full_path = path_prefix + path
