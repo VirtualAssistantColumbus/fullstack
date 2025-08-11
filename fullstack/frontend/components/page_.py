@@ -64,7 +64,7 @@ def path_to_bson(path: str) -> dict:
 	
 	return result
 
-def bson_to_path(bson: dict) -> str:
+def bson_to_query_string(bson: dict) -> str:
 	""" Converts BSON dict to query string format.
 	
 	Top-level parameters become query string parameters.
@@ -78,20 +78,21 @@ def bson_to_path(bson: dict) -> str:
 	
 	for key, value in bson.items():
 		if isinstance(value, (str, int, float, bool)) or value is None:
-			# Simple primitive values - use as-is
+			# Simple primitive values - URL encode to handle special characters
 			if value is None:
-				query_parts.append(f"{key}=")
+				query_parts.append(f"{quote(key)}=")
 			else:
-				query_parts.append(f"{key}={quote(str(value))}")
+				query_parts.append(f"{quote(key)}={quote(str(value))}")
 		else:
 			# Complex values (dict, list, etc.) - use the same mechanism as original bson_to_path
 			json_str = json.dumps(value)
 			# Replace forward slashes with encoded version, then URL encode everything else
 			encoded_value = json_str.replace('/', '%2F')
 			encoded_value = quote(encoded_value)
-			query_parts.append(f"{key}={encoded_value}")
+			query_parts.append(f"{quote(key)}={encoded_value}")
 	
-	return "&".join(query_parts)
+	query_string = "&".join(query_parts)
+	return f"?{query_string}" if query_string else ""
 
 class Page_(Element_, HasUrl, ABC):
 	""" Represents a destination which can be accessed by URL within our framework.
@@ -156,10 +157,10 @@ class Page_(Element_, HasUrl, ABC):
 		# Remove __type_id__
 		remove_type_id(json_value)
 		
-		path = bson_to_path(json_value)
+		path = bson_to_query_string(json_value)
 
 		# Add path prefix
-		path_prefix = type(self).get_path_prefix(leading_slash=True, trailing_slash=True)
+		path_prefix = type(self).get_path_prefix(leading_slash=True, trailing_slash=False)
 		full_path = path_prefix + path
 		return full_path
 	
