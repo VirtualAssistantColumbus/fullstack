@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import ClassVar, Self
-from urllib.parse import quote, unquote, parse_qs
+from urllib.parse import quote, unquote, parse_qs, urlencode
 from flask import json
 
 from fullstack.typing.serialization.vars import remove_type_id
@@ -10,7 +10,11 @@ from ..framework.client_url import get_client_path
 from ..framework.locator import HasUrl, Locator, url
 from .element_ import Element_
 from ...typing import __type_id__
+from ...utilities.logger import logger
 
+# Sentinel values for non-string primitives and complex types in URL parameters
+URL_SENTINEL_START = ".~"
+URL_SENTINEL_END = "~."
 
 def get_readable_url(url: str) -> str:
 	""" This is a helper method just for internal debugging, useful for checking the state of the web app. """
@@ -21,78 +25,62 @@ def get_readable_url(url: str) -> str:
 	json_value = json.loads(json_str)
 	return json.dumps(json_value, indent=4)
 
-def path_to_bson(path: str) -> dict:
-	"""Converts query string back to BSON dict.
+def args_to_bson(args: dict) -> dict:
+	"""Converts query string arguments dict to BSON dict.
 	
 	Reconstructs the original structure by detecting and parsing
-	JSON-encoded complex values using the same decoding mechanism.
+	JSON-encoded values using the URL_SENTINEL prefix.
 	"""
-	if not path:
+	if not args:
 		return {}
-	
-	# Parse the query string
-	parsed = parse_qs(path, keep_blank_values=True)
 	
 	result = {}
 	
-	for key, values in parsed.items():
-		# parse_qs returns lists, but we expect single values
-		value = values[0] if values else ""
-		
-		if value == "":
-			# Empty value means None
-			result[key] = None
-		else:
-			# Try to detect if this is a JSON-encoded complex value
+	for key, value in args.items():
+		if value.startswith(URL_SENTINEL_START) and value.endswith(URL_SENTINEL_END):
+			# Value is bookended with sentinels - decode as JSON
 			try:
-				# Check if it looks like JSON (starts with {, [, ", or number)
-				if (value.startswith('{') or value.startswith('[') or 
-					value.startswith('"') or value.replace('.', '').replace('-', '').isdigit()):
-					# Use the same decoding mechanism as the original path_to_bson
-					# URL decode everything except our encoded slashes
-					json_str = unquote(value)
-					# Now decode our forward slashes
-					json_str = json_str.replace('%2F', '/')
-					parsed_value = json.loads(json_str)
-					result[key] = parsed_value
-				else:
-					# Regular string value
-					result[key] = value
+				# Remove bookend sentinels and decode the JSON value
+				json_str = value[len(URL_SENTINEL_START):-len(URL_SENTINEL_END)]  # Remove .~ prefix and ~ suffix
+				# URL decode everything except our encoded slashes
+				json_str = unquote(json_str)
+				# Now decode our forward slashes
+				json_str = json_str.replace('%2F', '/')
+				parsed_value = json.loads(json_str)
+				result[key] = parsed_value
 			except (json.JSONDecodeError, ValueError):
-				# If JSON parsing fails, treat as regular string
+				# If JSON parsing fails, treat as regular string (fallback)
 				result[key] = value
+		else:
+			# No bookend sentinels - treat as regular string
+			result[key] = value
 	
 	return result
 
-def bson_to_query_string(bson: dict) -> str:
-	""" Converts BSON dict to query string format.
+def bson_to_args(bson: dict) -> dict:
+	""" Converts BSON dict to query string arguments dict.
 	
-	Top-level parameters become query string parameters.
-	Complex/nested values use the same encoding mechanism as the original:
-	JSON dump -> replace / with %2F -> URL encode
+	Top-level parameters become query string arguments.
+	Strings are stored as-is, all other types are prefixed with URL_SENTINEL.
+	Returns a dictionary ready for use with from_args().
 	"""
 	if not bson:
-		return ""
+		return {}
 	
-	query_parts = []
+	args = {}
 	
 	for key, value in bson.items():
-		if isinstance(value, (str, int, float, bool)) or value is None:
-			# Simple primitive values - URL encode to handle special characters
-			if value is None:
-				query_parts.append(f"{quote(key)}=")
-			else:
-				query_parts.append(f"{quote(key)}={quote(str(value))}")
+		if isinstance(value, str):
+			# Strings are stored as-is (no encoding needed)
+			args[key] = value
 		else:
-			# Complex values (dict, list, etc.) - use the same mechanism as original bson_to_path
+			# All other types (int, float, bool, None, dict, list, etc.) get JSON encoded with bookend sentinels
 			json_str = json.dumps(value)
-			# Replace forward slashes with encoded version, then URL encode everything else
+			# Replace forward slashes with encoded version to preserve them
 			encoded_value = json_str.replace('/', '%2F')
-			encoded_value = quote(encoded_value)
-			query_parts.append(f"{quote(key)}={encoded_value}")
+			args[key] = f"{URL_SENTINEL_START}{encoded_value}{URL_SENTINEL_END}"
 	
-	query_string = "&".join(query_parts)
-	return f"?{query_string}" if query_string else ""
+	return args
 
 class Page_(Element_, HasUrl, ABC):
 	""" Represents a destination which can be accessed by URL within our framework.
@@ -141,7 +129,7 @@ class Page_(Element_, HasUrl, ABC):
 			
 	@classmethod
 	def remove_path_prefix(cls, full_path: str) -> str:
-		return full_path.removeprefix(cls.get_path_prefix(leading_slash=True, trailing_slash=True))
+		return full_path.removeprefix(cls.get_path_prefix(leading_slash=True, trailing_slash=False))
 
 	def page_title(self) -> str:
 		return "Untitled"
@@ -150,14 +138,28 @@ class Page_(Element_, HasUrl, ABC):
 		""" Returns the full url, including https://, subdomain, domain, and path. Depends on the website URL in environment variables. """
 		return url(Locator(host=self.__host__, path=self.to_full_path()), include_http=include_http)
 
-	def to_full_path(self):
-		""" Serializes this object into a full path (including __path_id__) """
+	def to_args(self) -> dict:
+		""" Returns this object as a dictionary of query string arguments.
+		
+		This is useful when you want to work with the arguments directly
+		without constructing a URL string.
+		"""
 		json_value = self.to_bson()
 		
 		# Remove __type_id__
 		remove_type_id(json_value)
 		
-		path = bson_to_query_string(json_value)
+		# Convert to args dict
+		return bson_to_args(json_value)
+
+	def to_full_path(self):
+		""" Serializes this object into a full path (including __path_id__) """
+		# Get args dict
+		args = self.to_args()
+		
+		# Convert args to query string using built-in urlencode
+		query_string = urlencode(args, doseq=False)
+		path = f"?{query_string}" if query_string else ""
 
 		# Add path prefix
 		path_prefix = type(self).get_path_prefix(leading_slash=True, trailing_slash=False)
@@ -165,20 +167,58 @@ class Page_(Element_, HasUrl, ABC):
 		return full_path
 	
 	@classmethod
-	def from_path(cls, path: str):
-		""" Constructs a HasRoute from a URL. """
-		bson = path_to_bson(path)
-
-		# Add type id
-		if not __type_id__ in bson:
+	def from_args(cls, args: dict):
+		""" Constructs a Page_ from query string arguments.
+		
+		Args:
+			args: Dictionary of query string arguments (e.g., from Flask's request.args)
+		"""
+		# args is already a dict, no need to parse
+		bson = args_to_bson(args)
+		
+		# Add type id if not present
+		if __type_id__ not in bson:
 			bson[__type_id__] = cls.__type_id__
-
+		
+		return cls.from_bson(bson, None)
+	
+	@classmethod
+	def from_path(cls, path: str):
+		""" Constructs a Page_ from a URL path with query string.
+		
+		This method is kept for backward compatibility but is deprecated.
+		Use from_args() instead for better clarity and performance.
+		"""
+		logger.warning("from_path() is deprecated. Use from_args() instead.")
+		
+		# Parse query string into args dict
+		if '?' in path:
+			query_part = path.split('?', 1)[1]
+			args = parse_qs(query_part, keep_blank_values=True)
+			# Convert lists to single values (parse_qs returns lists)
+			args = {k: v[0] if v else "" for k, v in args.items()}
+		else:
+			args = {}
+		
+		# Convert args to BSON format and then construct the page
+		bson = args_to_bson(args)
+		
+		# Add type id if not present
+		if __type_id__ not in bson:
+			bson[__type_id__] = cls.__type_id__
+		
 		return cls.from_bson(bson, None)
 	
 	@classmethod
 	def from_full_path(cls, full_path: str):
+		""" Constructs a Page_ from a full URL path. """
+		logger.warning("Full path:")
+		logger.warning(full_path)
+		
 		# Remove path prefix
 		path = cls.remove_path_prefix(full_path)
+		logger.warning(path)
+
 		return cls.from_path(path)
 	
 	@classmethod

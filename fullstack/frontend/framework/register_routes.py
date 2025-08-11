@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from flask_login import login_required
 
 from ...utilities.setup_error import SetupError
@@ -7,6 +7,7 @@ from ...typing.registration.get_all_subclasses import get_all_subclasses
 from ..components.element_ import draw
 from ..components.page_ import Page_
 from .route import app_route
+from ...utilities.logger import logger
 
 
 def register_flask_routes(app: Flask):
@@ -33,22 +34,25 @@ def create_and_register_page_route(page_cls: type[Page_]) -> None:
     """ Generates a route for a page. """
     from .routable_cls_field_names import __login_required__
 
+    rule = page_cls.get_path_prefix(leading_slash=True, trailing_slash=False)
+
+    #temp
+    logger.warning(f"Registering {page_cls} with rule {rule}")
+
     is_login_required = True # Default to True
     if hasattr(page_cls, __login_required__) and page_cls.__login_required__ == False:
         is_login_required = False
 
     if is_login_required:
-        @app_route(host=page_cls.__host__, rule=f"{page_cls.get_path_prefix(leading_slash=True, trailing_slash=True)}", defaults={'path': ''}, )
-        @app_route(host=page_cls.__host__, rule=f"{page_cls.get_path_prefix(leading_slash=True, trailing_slash=True)}<path>", )
+        @app_route(host=page_cls.__host__, rule=rule, strict_slashes=False)
         @login_required # Make sure to apply the login required decorator first. This decorator returns the function wrapped in a login guard. We need to register this wrapper function, not the underlying one.
-        def page_rt(path: str):
-            page = page_cls.from_path(path)
+        def page_rt():
+            page = page_cls.from_args(request.args)
             return draw(page)
     else:
-        @app_route(host=page_cls.__host__, rule=f"{page_cls.get_path_prefix(leading_slash=True, trailing_slash=True)}", defaults={'path': ''}, )
-        @app_route(host=page_cls.__host__, rule=f"{page_cls.get_path_prefix(leading_slash=True, trailing_slash=True)}<path>", )
-        def page_rt(path: str):
-            page = page_cls.from_path(path)
+        @app_route(host=page_cls.__host__, rule=rule, strict_slashes=False)
+        def page_rt():
+            page = page_cls.from_args(request.args)
             return draw(page)
     
     # Rename the function before applying login_required decorator.
