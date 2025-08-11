@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import ClassVar, Self
-from urllib.parse import quote, unquote
-
+from urllib.parse import quote, unquote, parse_qs
 from flask import json
 
 from fullstack.typing.serialization.vars import remove_type_id
@@ -23,28 +22,76 @@ def get_readable_url(url: str) -> str:
 	return json.dumps(json_value, indent=4)
 
 def path_to_bson(path: str) -> dict:
-	# If the path does not exist, return an empty dict
+	"""Converts query string back to BSON dict.
+	
+	Reconstructs the original structure by detecting and parsing
+	JSON-encoded complex values using the same decoding mechanism.
+	"""
 	if not path:
 		return {}
 	
-	# URL decode everything except our encoded slashes
-	json_str = unquote(path)
-	# Now decode our forward slashes
-	json_str = json_str.replace('%2F', '/')
-	json_value = json.loads(json_str)
-	return json_value
+	# Parse the query string
+	parsed = parse_qs(path, keep_blank_values=True)
+	
+	result = {}
+	
+	for key, values in parsed.items():
+		# parse_qs returns lists, but we expect single values
+		value = values[0] if values else ""
+		
+		if value == "":
+			# Empty value means None
+			result[key] = None
+		else:
+			# Try to detect if this is a JSON-encoded complex value
+			try:
+				# Check if it looks like JSON (starts with {, [, ", or number)
+				if (value.startswith('{') or value.startswith('[') or 
+					value.startswith('"') or value.replace('.', '').replace('-', '').isdigit()):
+					# Use the same decoding mechanism as the original path_to_bson
+					# URL decode everything except our encoded slashes
+					json_str = unquote(value)
+					# Now decode our forward slashes
+					json_str = json_str.replace('%2F', '/')
+					parsed_value = json.loads(json_str)
+					result[key] = parsed_value
+				else:
+					# Regular string value
+					result[key] = value
+			except (json.JSONDecodeError, ValueError):
+				# If JSON parsing fails, treat as regular string
+				result[key] = value
+	
+	return result
 
 def bson_to_path(bson: dict) -> str:
-	""" Converts bson to path. """
-	# If the bson is empty, do not add a path
+	""" Converts BSON dict to query string format.
+	
+	Top-level parameters become query string parameters.
+	Complex/nested values use the same encoding mechanism as the original:
+	JSON dump -> replace / with %2F -> URL encode
+	"""
 	if not bson:
 		return ""
 	
-	json_str = json.dumps(bson)
-	# Replace forward slashes with encoded version, then URL encode everything else
-	path = json_str.replace('/', '%2F')
-	path = quote(path)
-	return path
+	query_parts = []
+	
+	for key, value in bson.items():
+		if isinstance(value, (str, int, float, bool)) or value is None:
+			# Simple primitive values - use as-is
+			if value is None:
+				query_parts.append(f"{key}=")
+			else:
+				query_parts.append(f"{key}={quote(str(value))}")
+		else:
+			# Complex values (dict, list, etc.) - use the same mechanism as original bson_to_path
+			json_str = json.dumps(value)
+			# Replace forward slashes with encoded version, then URL encode everything else
+			encoded_value = json_str.replace('/', '%2F')
+			encoded_value = quote(encoded_value)
+			query_parts.append(f"{key}={encoded_value}")
+	
+	return "&".join(query_parts)
 
 class Page_(Element_, HasUrl, ABC):
 	""" Represents a destination which can be accessed by URL within our framework.

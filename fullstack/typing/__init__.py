@@ -15,4 +15,4 @@ from .serialization.vars import __type_id__, remove_type_id, get_type_id
 
 
 # Module-level stateful variable - will be populated when create_type_registry() is called
-type_registry: TypeRegistry = TypeRegistry.initialize()
+type_registry: TypeRegistry = TypeRegistry()

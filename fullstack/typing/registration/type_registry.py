@@ -1,10 +1,8 @@
-from dataclasses import dataclass
-from typing import Any, Callable, ForwardRef, TYPE_CHECKING
+from typing import Any, ForwardRef, TYPE_CHECKING
 from bidict import bidict
 
 if TYPE_CHECKING:
     from ..bsonable_dataclass.bsonable_dataclass import BsonableDataclass
-    from ...document.document_info import listDocumentInfo
 
 
 class TypeNameDict(bidict[str, type]):
@@ -16,43 +14,29 @@ class TypeNameDict(bidict[str, type]):
         for type_ in types:
             self.add(type_)
 
-@dataclass
 class TypeRegistry:
     """ A registry of all types that can be stored and retrieved from MongoDb. """
-    document_info_list: 'listDocumentInfo'
+    _instance = None
+    _initialized = False
     
-    # Type lists, useful for isintance, issubclass checks in our routing within obj_to_bson, bson_to_obj
-    abstract_bsonable_dataclass_list: list[type['BsonableDataclass']]
-    concrete_bsonable_dataclass_dict: list[type['BsonableDataclass']]
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
     
-    pseudo_primitives: list[type]
-    pseudo_primitive_to_bson: Callable[[Any], Any]
-    bson_to_pseudo_primitive: Callable[..., Any]
-    """ Expected function signature: 
-    (bson: Any, expected_type_info: TypeInfo, document_context: DocumentContext | None, *, coerce_str_values: bool = False) -> Any """
-    
-    primitives: list[type]
-
-    type_id_dict: bidict[str, type]
-    """ Type dictionary with all serializable types. """
-    
-    type_name_dict: TypeNameDict
-    """ Type dictionary with *all* types, including abstract dataclasses. """
-
-    @classmethod
-    def initialize(cls) -> 'TypeRegistry':
-        from ...document.document_info import listDocumentInfo
-        return TypeRegistry(
-            document_info_list=listDocumentInfo(),
-            abstract_bsonable_dataclass_list=[],
-            concrete_bsonable_dataclass_dict=[],
-            pseudo_primitives=[],
-            pseudo_primitive_to_bson=None,
-            bson_to_pseudo_primitive=None,
-            primitives=[],
-            type_id_dict=bidict(),
-            type_name_dict=TypeNameDict()
-        )
+    def __init__(self):
+        if not self._initialized:
+            from ...document.document_info import listDocumentInfo
+            self.document_info_list = listDocumentInfo()
+            self.abstract_bsonable_dataclass_list = []
+            self.concrete_bsonable_dataclass_dict = []
+            self.pseudo_primitives = []
+            self.pseudo_primitive_to_bson = None
+            self.bson_to_pseudo_primitive = None
+            self.primitives = []
+            self.type_id_dict = bidict()
+            self.type_name_dict = TypeNameDict()
+            self._initialized = True
 
     # @property
     # def bsonable_dataclasses(self) -> tuple[type[BsonableDataclass], ...]:
