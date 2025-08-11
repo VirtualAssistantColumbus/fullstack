@@ -3,7 +3,7 @@ from typing import ClassVar, Self
 from urllib.parse import quote, unquote, parse_qs, urlencode
 from flask import json
 
-from fullstack.typing.serialization.vars import remove_type_id
+from ...typing.serialization.vars import remove_type_id
 
 from ..utilities.html import Html
 from ..framework.client_url import get_client_path

@@ -1,6 +1,6 @@
 # Project Architecture Reference
 
-## The Custom "Fullstack" Framework
+## The Custom "Pylixir" Framework
 
 This project uses a **custom-built Python web framework** that combines two main modules to create a complete full-stack solution:
 

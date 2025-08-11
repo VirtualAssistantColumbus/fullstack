@@ -1,6 +1,6 @@
-# Fullstack Framework
+# Pylixir Framework
 
-A type-safe fullstack web framework with document handling and HTMX integration.
+A type-safe fullstack Python web framework with document handling and HTMX integration.
 
 ## Features
 
@@ -29,27 +29,27 @@ A type-safe fullstack web framework with document handling and HTMX integration.
 ### From Private Git Repository
 
 ```bash
-pip install git+https://github.com/yourusername/fullstack.git
+pip install git+https://github.com/yourusername/pylixir.git
 ```
 
 ### From Local Source
 
 ```bash
-cd /path/to/fullstack
+cd /path/to/pylixir
 pip install -e .
 ```
 
 ## Quick Start
 
 ```python
-from fullstack.frontend import register_flask_routes
-from fullstack.document import Document
-from fullstack.typing import type_registry
+from pylixir.frontend import register_flask_routes
+from pylixir.document import Document
+from pylixir.typing import type_registry
 
 # Initialize your Flask app
 app = Flask(__name__)
 
-# Register fullstack routes
+# Register pylixir routes
 register_flask_routes(app)
 
 # Define your documents

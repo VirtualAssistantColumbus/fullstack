@@ -1,4 +1,4 @@
-# Fullstack Frontend Module
+# Pylixir Frontend Module
 
 # IDE
 - Use the VS Code extension: "Highlight f-strings" by jkmnt so that Html in f-strings is highlighted. You may need to register "Html" as a highlighting function.
@@ -36,8 +36,8 @@ def create_app():
     # Import all your modules here
     
     # Then run the registration
-    import fullstack.frontend
-    fullstack.frontend.register_flask_routes(web_app)
+    import pylixir.frontend
+	pylixir.frontend.register_flask_routes(web_app)
 ```
 
 The import step loads all the routes and pages into the module, and the registration step registers them with your Flask application.
@@ -46,11 +46,11 @@ The import step loads all the routes and pages into the module, and the registra
 After importing the frontend module, you can set global head content (CSS, external scripts, fonts) and custom JavaScript:
 
 ```python
-import fullstack.frontend
-from fullstack.frontend.utilities.html import Html
+import pylixir.frontend
+from pylixir.frontend.utilities.html import Html
 
 # Set head content (injected into <head> section)
-fullstack.frontend.head = Html("""
+pylixir.frontend.head = Html("""
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Caveat&display=swap" rel="stylesheet">
@@ -60,7 +60,7 @@ fullstack.frontend.head = Html("""
 """)
 
 # Set custom JavaScript (injected into <body> before closing tag)
-fullstack.frontend.script = """
+pylixir.frontend.script = """
     // Custom initialization code
     console.log('App initialized');
 """
